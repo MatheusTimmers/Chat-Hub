@@ -1,5 +1,7 @@
 #include "ChatHub.hpp"
 #include <iostream>
+#include <iterator>
+#include <locale>
 #include <mutex>
 #include <ostream>
 #include <string>
@@ -70,20 +72,7 @@ void ChatHub::handle_client(ChatUser *user) {
     std::cout << "Cliente adicionado ao HUB." << std::endl;
   }
 
-  char buffer[BUFFER_SIZE];
-  while (true) {
-    // Recebe mensagem do cliente
-    int bytes_received = user->recv_message(buffer);
-    if (bytes_received <= 0) {
-      std::cerr << "Cliente desconectado ou erro ao receber dados."
-                << std::endl;
-      break;
-    }
-
-    // TODO: implementar a lógica para enviar a mensagem para outros clientes
-    std::string message(buffer);
-    process_message(user, message);
-  }
+  process_message(user);
 
   {
     std::unique_lock<std::mutex> lock(client_mutex);
@@ -94,74 +83,93 @@ void ChatHub::handle_client(ChatUser *user) {
   delete user;
 }
 
-void ChatHub::process_message(ChatUser *user, const std::string &message) {
-  // Mensagem chat username - linka o usuario atual com
-  // Mensagem group group_name - linka o usuario atual com um grupo
-  // Mensagem UsernameSrc UsernameDest msg - depois linkado envia a mensagem
-  UserCommands cmd = process_command(user, message);
+void ChatHub::process_message(ChatUser *user) {
 
-  switch (cmd) {
-  case chat:
-  case group: {
-    // Inicializando as variáveis para os componentes da mensagem
-    std::string username_src, username_dest, msg_content;
-    std::istringstream iss(message);
+  while (1) {
+    char buffer[BUFFER_SIZE];
+    int bytes_received = user->recv_message(buffer);
 
-    // Extraindo username_src, username_dest, e o corpo da mensagem
-    if (!(iss >> username_src >> username_dest)) {
-      std::cerr << "Erro no formato da mensagem." << std::endl;
-      return;
+    if (bytes_received <= 0) {
+      std::cerr << "Cliente desconectado ou erro ao receber dados."
+                << std::endl;
+    } else {
+      // Mensagem chat username - linka o usuario atual com
+      // Mensagem group group_name - linka o usuario atual com um grupo
+      // Mensagem UsernameSrc UsernameDest msg - depois linkado envia a mensagem
+      std::string message(buffer);
+      UserCommands cmd = process_command(user, message);
+
+      switch (cmd) {
+      case chat:
+      case group: {
+        while (1) {
+          bytes_received = user->recv_message(buffer);
+          if (bytes_received > 0) {
+            // TODO: Criar mensagem para cliente para avisar da
+            // conexão bem sucedidada
+            std::string message(buffer);
+            std::string username_src, username_dest, msg_content;
+            std::istringstream iss(message);
+
+            cout << "DEBUG3" << message << endl;
+
+            if (!(iss >> username_src >> username_dest)) {
+              std::cerr << "Erro no formato da mensagem." << std::endl;
+              return;
+            }
+
+            if (message == "exit " + username_dest) {
+              break;
+            }
+
+            std::getline(iss, msg_content);
+
+            if (!msg_content.empty() && msg_content[0] == ' ') {
+              msg_content.erase(0, 1);
+            }
+
+            ChatUser *dest_user = get_user(username_dest);
+            if (!dest_user) {
+              std::cerr << "Usuário " << username_dest
+                        << " não encontrado ou não está conectado."
+                        << std::endl;
+              return;
+              // TODO:Mensagem avisando do erro
+            }
+            dest_user->send_message(msg_content, username_src);
+          }
+        }
+
+        break;
+      }
+      case exitc: {
+        std::cout << "Saindo da aplicação..." << std::endl;
+        // TODO: adicionar a lógica para quando o comando for "exit"
+        break;
+      }
+      case notfound: {
+        std::cerr << "Comando não encontrado!" << std::endl;
+        // TODO: Adicionar a lógica para comandos não encontrados
+        break;
+      }
+      default: {
+        std::cerr << "Comando desconhecido!" << std::endl;
+        break;
+      }
+      }
     }
-
-    // Pega o conteúdo da mensagem
-    std::getline(iss, msg_content);
-
-    // Remove o espaço extra
-    if (!msg_content.empty() && msg_content[0] == ' ') {
-      msg_content.erase(0, 1);
-    }
-
-    // Verificar se o destinatário está conectado
-    ChatUser *dest_user = get_user(username_dest);
-    if (!dest_user) {
-      std::cerr << "Usuário " << username_dest
-                << " não encontrado ou não está conectado." << std::endl;
-      return;
-    }
-
-    // Enviar a mensagem para o destinatário
-    dest_user->send_message(msg_content.c_str(), username_src);
-    std::cout << "Mensagem enviada de " << username_src << " para "
-              << username_dest << ": " << msg_content << std::endl;
-    break;
-  }
-
-  case exitc: {
-    std::cout << "Saindo da aplicação..." << std::endl;
-    // TODO: adicionar a lógica para quando o comando for "exit"
-    break;
-  }
-
-  case notfound: {
-    std::cerr << "Comando não encontrado!" << std::endl;
-    // TODO: Adicionar a lógica para comandos não encontrados
-    break;
-  }
-
-  default: {
-    std::cerr << "Comando desconhecido!" << std::endl;
-    break;
-  }
   }
 }
 
 UserCommands ChatHub::process_command(ChatUser *user,
                                       const std::string &message) {
+  cout << "DEBUG1 " << message << endl;
   if (message.substr(0, 4) == "chat") {
     std::string target_user = message.substr(5);
     ChatUser *dest_user = get_user(target_user);
+    cout << "DEBUG2 " << message << endl;
     if (dest_user) {
-      std::string welcome_msg = "Chat iniciado com: " + target_user;
+      std::string welcome_msg = "Chat iniciado com " + target_user;
       user->send_message(welcome_msg.c_str(), user->get_username());
       return UserCommands::chat;
     } else {
@@ -185,7 +193,6 @@ ChatUser *ChatHub::get_user(const std::string &username) {
 
   for (const auto &pair : *connected_clients) {
     ChatUser *user = pair.second;
-    cout << user->get_username() << " " << username << endl;
     if (user->get_username() == username) {
       return user;
     }

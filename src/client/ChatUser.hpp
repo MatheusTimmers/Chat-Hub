@@ -1,12 +1,16 @@
 #ifndef _CHAT_USER_HPP
 #define _CHAT_USER_HPP
 
+#include "../../enums/utils.hpp"
 #include "../server/client_socket/ClientSocket.hpp"
+#include <atomic>
 #include <sstream>
 #include <string>
+#include <thread>
 
 class ChatUser {
 private:
+  std::atomic<bool> stop_msg_thread;
   ClientSocket *socket;
   std::string username;
 

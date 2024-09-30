@@ -1,7 +1,6 @@
 #include "chat/ChatHub.hpp"
 #include <cstring>
 #include <iostream>
-#include <thread>
 
 int main(int argc, char *argv[]) {
   if (argc < 3) {
@@ -34,17 +33,8 @@ int main(int argc, char *argv[]) {
     ChatUser *user = new ChatUser(argv[1], Ip, port);
 
     user->connect_server();
-
-    user->user_interact();
-
-    // verifica a interação do usuario
-    std::thread receiver_thread(&ChatUser::print_messages, user);
-
     while (1) {
-      // TODO: Criar comandos para entrar em chats com pessoas especificas
-      std::string msg;
-      std::getline(std::cin, msg);
-      user->send_message(msg.c_str(), "teste");
+      user->user_interact();
     }
   }
 

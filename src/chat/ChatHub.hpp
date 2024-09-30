@@ -3,17 +3,11 @@
 
 #include "../client/ChatUser.hpp"
 #include "../server/server_socket/ServerSocket.hpp"
+
 #include <map>
 #include <mutex>
 #include <sstream>
 #include <thread>
-
-enum UserCommands {
-  group,
-  chat,
-  notfound,
-  exitc,
-};
 
 class ChatHub {
 private:
@@ -30,7 +24,7 @@ public:
 
   bool start_hub();
   void handle_client(ChatUser *user);
-  void process_message(ChatUser *user, const std::string &message);
+  void process_message(ChatUser *user);
   UserCommands process_command(ChatUser *user, const std::string &message);
   void accept_connections();
 
