@@ -3,15 +3,16 @@
 
 #include "../socket/socket.hpp"
 
-class ServerSocket : public Socket
-{
+class ServerSocket : public Socket {
 public:
-  ServerSocket(string ip, int port);
+  ServerSocket(string ip, int port, bool is_udp);
   ~ServerSocket();
 
-  int accept_client();
-  bool listen_socket(int backlog);
-  bool bind_socket();
+  int AcceptClient();
+  bool ListenSocket(int backlog);
+  bool BindSocket();
+
+  void RecvMessage() override;
 };
 
 #endif

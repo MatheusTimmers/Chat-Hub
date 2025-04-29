@@ -6,17 +6,18 @@
 class ClientSocket : public Socket {
 public:
   // Constructor usado pelo cliente
-  ClientSocket(string Ip, int port);
+  ClientSocket(string Ip, int port, bool is_udp);
   // Constructor usado pelo server
   ClientSocket(int client_fd, struct sockaddr_in client_addr);
   ~ClientSocket();
 
-  bool connect_server();
-  int send_message(const char *buffer);
-  int recv_message(char *buffer);
+  // TCP
+  bool ConnectServer();
+  int SendMessage(const char *buffer);
+  int RecvMessage(char *buffer);
 
-  void set_timeout(int timeout);
-  void set_socket_fd(int fd);
+  void SetTimeout(int timeout);
+  void SetSocketFd(int fd);
 };
 
 #endif

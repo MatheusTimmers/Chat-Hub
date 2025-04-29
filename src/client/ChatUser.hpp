@@ -13,39 +13,46 @@ private:
   std::atomic<bool> stop_msg_thread;
   ClientSocket *socket;
   std::string username;
+  std::string current_chat;
 
 public:
   // User criado pelo Cliente
-  ChatUser(std::string username, std::string Ip, int port);
+  ChatUser(std::string username, std::string Ip, int port, bool is_udp);
 
   // User criado pelo Server
   ChatUser(std::string username, int client_fd, struct sockaddr_in client_addr);
   ~ChatUser();
 
-  void user_interact();
+  void UserInteract();
 
   // Envia o login para o server
-  void send_login();
+  void SendLogin();
 
   // Printa as mesnagens que o User recebe
-  void print_messages();
+  void PrintMessages();
 
   // Recebe as mensagens do User
-  int recv_message(char *buffer);
+  int RecvMessage(char *buffer);
 
   // Envia as mensagens para o User
-  void send_message(std::string message, std::string username_dst);
+  void SendMessage(std::string message, std::string username_dst);
 
   // Envia um comando para o servidor
-  void send_command(std::string cmd, std::string param);
+  void SendCommand(std::string cmd, std::string param);
 
   // Se conecta no server
-  void connect_server();
+  void ConnectServer();
+
+  // Varica se o user pode se conectar
+  bool UserCanChat(std::string target_name);
+
+  // Espera a resposta do servidor
+  void WaitingConnection();
 
   // Get e Set
-  std::string get_username();
-  int get_socket_fd();
-  void set_username(std::string username);
+  std::string GetUsername();
+  int GetSocketFd();
+  void SetUsername(std::string username);
 };
 
 #endif
